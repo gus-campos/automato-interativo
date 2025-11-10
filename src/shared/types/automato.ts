@@ -1,26 +1,26 @@
-type Estado = string;
-type Letra = string;
+type State = string;
+type Letter = string;
 type Epsilon = "ε";
 
-type DFATransition = Record<Estado, Record<Letra, Estado>>;
-type NFATransition = Record<Estado, Record<Letra, Estado[]>>;
+type DFATransition = Record<State, Record<Letter, State>>;
+type NFATransition = Record<State, Record<Letter, State[]>>;
 
 type DFA = {
-  states: Estado[];
-  alphabet: Letra[];
-  start: Estado;
-  accept: Estado[];
+  states: State[];
+  alphabet: Letter[];
+  start: State;
+  accept: State[];
   transitions: DFATransition;
 };
 
 type NFA = {
-  states: Estado[];
-  alphabet: Letra[];
-  start: Estado;
-  accept: Estado[];
+  states: State[];
+  alphabet: Letter[];
+  start: State;
+  accept: State[];
   transitions: NFATransition;
 };
 
 type NFAWithEpsilon = NFA & {
-  transitions: Record<Estado, Record<Letra | Epsilon, Estado[]>>;
+  transitions: Record<State, Record<Letter | Epsilon, State[]>>;
 };

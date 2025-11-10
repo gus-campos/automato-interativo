@@ -16,12 +16,9 @@ import { getAutoPositionedNodes } from "../utils/auto-position-nodes";
 
 /*
 TODO
-- [] Centralizar a visualização por padrão (tem opção nativa de centralizar)
-- [] Encontrar forma de indicar estado inicial e finais
-- [] Permitir que sejam adicionados nós
-- [] Adicionar nomes aos nós
-- [] Permitir que sejam adicionadas arestas
-- [] Adicionar nomes às arestas
+- [X] Encontrar forma de indicar estado inicial e finais
+- [] Permitir que sejam adicionados nós com nomes
+- [] Permitir que sejam adicionadas arestas com letra
 
 - [] Ler e exportar o json (última coisa)
 
@@ -41,16 +38,16 @@ EXTRA DO EXTRA
 */
 
 const [initialNodes, initialEdges] = automatToReactFlow({
-  alphabet: ["a", "b"],
-  states: ["1", "2", "3"],
-  accept: ["3"],
-  start: "1",
+  alphabet: ["a", "b", "c"],
+  states: ["Estado 1", "Estado 2", "Estado 3"],
+  accept: ["Estado 3"],
+  start: "Estado 1",
   transitions: {
-    ["1"]: {
-      ["a"]: ["2", "3"],
+    ["Estado 1"]: {
+      ["a"]: ["Estado 2", "Estado 3"],
     },
-    ["2"]: {
-      ["b"]: ["3"],
+    ["Estado 2"]: {
+      ["b"]: ["Estado 3"],
     },
   },
 });
@@ -62,6 +59,8 @@ const autoPositionedNodes = getAutoPositionedNodes(
 );
 
 export default function HomePage() {
+  console.log(initialEdges, initialNodes);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(autoPositionedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -81,6 +80,7 @@ export default function HomePage() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           style={{ width: "100%", height: "100%" }}
+          fitView={true}
         >
           <MiniMap />
           <Controls />
