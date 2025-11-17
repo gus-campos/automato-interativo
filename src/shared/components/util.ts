@@ -1,7 +1,5 @@
 import { Position } from "@xyflow/react";
 
-type Point = { x: number; y: number };
-
 export type NodeLike = {
   id: string;
 

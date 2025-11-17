@@ -41,16 +41,19 @@ EXTRA DO EXTRA
 */
 
 const [initialNodes, initialEdges] = automatToReactFlow({
-  alphabet: ["a", "b", "c"],
-  states: ["Estado 1", "Estado 2", "Estado 3"],
-  accept: ["Estado 3"],
-  start: "Estado 1",
+  alphabet: ["a", "b"],
+  states: ["I", "A", "B"],
+  accept: ["B"],
+  start: "A",
   transitions: {
-    ["Estado 1"]: {
-      ["a"]: ["Estado 2", "Estado 3"],
+    ["I"]: {
+      ["a"]: ["A"],
     },
-    ["Estado 2"]: {
-      ["b"]: ["Estado 3"],
+    ["A"]: {
+      ["b"]: ["B"],
+    },
+    ["B"]: {
+      ["a"]: ["A", "I"],
     },
   },
 });

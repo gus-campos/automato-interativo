@@ -14,6 +14,7 @@ type FloatingEdgeProps = {
   target: string;
   markerEnd?: string;
   style?: React.CSSProperties;
+  label?: any;
 };
 
 function FloatingEdge({
@@ -22,6 +23,7 @@ function FloatingEdge({
   target,
   markerEnd,
   style,
+  label,
 }: FloatingEdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
@@ -42,14 +44,34 @@ function FloatingEdge({
     targetY: ty,
   });
 
+  const mx = (sx + tx) / 2;
+  const my = (sy + ty) / 2;
+
   return (
-    <path
-      id={id}
-      className="react-flow__edge-path"
-      d={edgePath}
-      markerEnd={markerEnd}
-      style={style}
-    />
+    <>
+      <path
+        id={id}
+        className="react-flow__edge-path"
+        d={edgePath}
+        markerEnd={markerEnd}
+        style={style}
+      />
+      {label && (
+        <>
+          <rect
+            x={mx - 10}
+            y={my - 10}
+            width={20}
+            height={20}
+            fill="white"
+            rx={4}
+          />
+          <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle">
+            {label}
+          </text>
+        </>
+      )}
+    </>
   );
 }
 
