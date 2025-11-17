@@ -1,4 +1,4 @@
-import { Edge, MarkerType, Node, Position } from "reactflow";
+import { Edge, MarkerType, Node, Position } from "@xyflow/react";
 
 const nodeDefaults = {
   style: {
@@ -23,6 +23,7 @@ const edgeDefaults = {
     color: "black",
     strokeWidth: 1.5,
   },
+  type: "floating",
 };
 
 export function automatToReactFlow(nfa: NFA): [Node[], Edge[]] {

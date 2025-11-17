@@ -1,6 +1,6 @@
 import dagre from "@dagrejs/dagre";
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 
 type Direction = "TB" | "LR" | "BT" | "RL";
 

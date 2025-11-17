@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import ReactFlow, {
+import {
+  ReactFlow,
   addEdge,
   Background,
   Connection,
@@ -10,9 +11,11 @@ import ReactFlow, {
   MiniMap,
   useEdgesState,
   useNodesState,
-} from "reactflow";
+} from "@xyflow/react";
 import { automatToReactFlow } from "../utils/automat-to-react-flow";
 import { getAutoPositionedNodes } from "../utils/auto-position-nodes";
+import FloatingEdge from "../components/FloatingEdge";
+import FloatingConnectionLine from "../components/FloatingConnectionLine";
 
 /*
 TODO
@@ -58,6 +61,10 @@ const autoPositionedNodes = getAutoPositionedNodes(
   "TB"
 );
 
+const edgeTypes = {
+  floating: FloatingEdge,
+};
+
 export default function HomePage() {
   console.log(initialEdges, initialNodes);
 
@@ -81,6 +88,8 @@ export default function HomePage() {
           onConnect={onConnect}
           style={{ width: "100%", height: "100%" }}
           fitView={true}
+          edgeTypes={edgeTypes}
+          connectionLineComponent={FloatingConnectionLine}
         >
           <MiniMap />
           <Controls />
