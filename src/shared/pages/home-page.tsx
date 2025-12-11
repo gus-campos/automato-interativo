@@ -16,6 +16,7 @@ import { automatToReactFlow } from "../utils/automat-to-react-flow";
 import { getAutoPositionedNodes } from "../utils/auto-position-nodes";
 import FloatingEdge from "../components/FloatingEdge";
 import FloatingConnectionLine from "../components/FloatingConnectionLine";
+import { LoopEdge } from "../components/LoopEdge";
 
 /*
 TODO
@@ -42,18 +43,29 @@ EXTRA DO EXTRA
 
 const [initialNodes, initialEdges] = automatToReactFlow({
   alphabet: ["a", "b"],
-  states: ["I", "A", "B"],
-  accept: ["B"],
-  start: "A",
+  states: ["S", "q1", "q2", "r1", "r2"],
+  accept: ["q1", "r1"],
+  start: "S",
   transitions: {
-    ["I"]: {
-      ["a"]: ["A"],
+    ["S"]: {
+      ["a"]: ["q1"],
+      ["b"]: ["r1"],
     },
-    ["A"]: {
-      ["b"]: ["B"],
+    ["q1"]: {
+      ["a"]: ["q1"],
+      ["b"]: ["q2"],
     },
-    ["B"]: {
-      ["a"]: ["A", "I"],
+    ["q2"]: {
+      ["a"]: ["q1"],
+      ["b"]: ["q2"],
+    },
+    ["r1"]: {
+      ["a"]: ["r2"],
+      ["b"]: ["r1"],
+    },
+    ["r2"]: {
+      ["a"]: ["r2"],
+      ["b"]: ["r1"],
     },
   },
 });
@@ -66,11 +78,10 @@ const autoPositionedNodes = getAutoPositionedNodes(
 
 const edgeTypes = {
   floating: FloatingEdge,
+  loop: LoopEdge,
 };
 
 export default function HomePage() {
-  console.log(initialEdges, initialNodes);
-
   const [nodes, setNodes, onNodesChange] = useNodesState(autoPositionedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -94,7 +105,6 @@ export default function HomePage() {
           edgeTypes={edgeTypes}
           connectionLineComponent={FloatingConnectionLine}
         >
-          <MiniMap />
           <Controls />
           <Background />
         </ReactFlow>

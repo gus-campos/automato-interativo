@@ -1,12 +1,6 @@
 import React from "react";
-import {
-  getBezierPath,
-  useInternalNode,
-  Position,
-  EdgeProps,
-} from "@xyflow/react";
-
-import { getEdgeParams } from "./util";
+import { getBezierPath, useInternalNode, Position } from "@xyflow/react";
+import { getFloatingEdgeParams, NodeLike } from "./util";
 
 type FloatingEdgeProps = {
   id: string;
@@ -15,6 +9,8 @@ type FloatingEdgeProps = {
   markerEnd?: string;
   style?: React.CSSProperties;
   label?: any;
+  curvature?: number;
+  data: any;
 };
 
 function FloatingEdge({
@@ -24,15 +20,20 @@ function FloatingEdge({
   markerEnd,
   style,
   label,
+  data,
 }: FloatingEdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
 
   if (!sourceNode || !targetNode) return null;
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(
+  const curvature = data?.curvature || 0;
+  const offsetMagnitude = curvature ? (curvature < 0 ? -20 : +20) : 0;
+
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
     sourceNode,
-    targetNode
+    targetNode,
+    offsetMagnitude
   );
 
   const [edgePath] = getBezierPath({

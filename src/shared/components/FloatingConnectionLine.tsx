@@ -1,5 +1,5 @@
 import { getBezierPath, Position } from "@xyflow/react";
-import { getEdgeParams } from "./util";
+import { getFloatingEdgeParams } from "./util";
 
 type FloatingConnectionLineProps = {
   toX: number;
@@ -29,7 +29,7 @@ function FloatingConnectionLine({
     },
   };
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
     fromNode,
     targetNode
   );
