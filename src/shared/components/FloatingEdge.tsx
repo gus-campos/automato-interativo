@@ -1,6 +1,6 @@
 import React from "react";
 import { getBezierPath, useInternalNode, Position } from "@xyflow/react";
-import { getFloatingEdgeParams, NodeLike } from "./util";
+import { getFloatingEdgeParams } from "./util";
 
 type FloatingEdgeProps = {
   id: string;
@@ -28,7 +28,7 @@ function FloatingEdge({
   if (!sourceNode || !targetNode) return null;
 
   const curvature = data?.curvature || 0;
-  const offsetMagnitude = curvature ? (curvature < 0 ? -20 : +20) : 0;
+  const offsetMagnitude = curvature ? (curvature < 0 ? -0.5 : +0.5) : 0;
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
     sourceNode,

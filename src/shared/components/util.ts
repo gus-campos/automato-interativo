@@ -17,36 +17,96 @@ export type NodeLike = {
 };
 
 function getNodeIntersection(
-  intersectionNode: any,
+  sourceNode: any,
   targetNode: any,
-  offset: number = 0
+  displacement: number = 0
 ) {
-  // https://math.stackexchange.com/questions/1724792/an-algorithm-for-finding-the-intersection-point-between-a-center-of-vision-and-a
+  const sourceDimensions = {
+    x: sourceNode.measured.width,
+    y: sourceNode.measured.height,
+  };
 
-  // Encontra o ponto no qual o
+  // Calcula o centro do nó source
+  const sourceCenter = {
+    x: sourceNode.internals.positionAbsolute.x + sourceDimensions.x / 2,
+    y: sourceNode.internals.positionAbsolute.y + sourceDimensions.y / 2,
+  };
 
-  const { width: intersectionNodeWidth, height: intersectionNodeHeight } =
-    intersectionNode.measured;
-  const intersectionNodePosition = intersectionNode.internals.positionAbsolute;
-  const targetPosition = targetNode.internals.positionAbsolute;
+  // Calcula o centro do nó target
+  const targetCenter = {
+    x: targetNode.internals.positionAbsolute.x + targetNode.measured.width / 2,
+    y: targetNode.internals.positionAbsolute.y + targetNode.measured.height / 2,
+  };
 
-  const w = intersectionNodeWidth / 2;
-  const h = intersectionNodeHeight / 2;
+  // Ponto de partida: centro horizontal deslocado pelo displacement
+  const startPoint = {
+    x: sourceCenter.x + displacement * (sourceDimensions.x / 2),
+    y: sourceCenter.y,
+  };
 
-  const x2 = intersectionNodePosition.x + w;
-  const y2 = intersectionNodePosition.y + h;
-  const x1 = targetPosition.x + targetNode.measured.width / 2;
-  const y1 = targetPosition.y + targetNode.measured.height / 2;
+  // Direção do raio (de startPoint para targetCenter)
+  const dx = targetCenter.x - startPoint.x;
+  const dy = targetCenter.y - startPoint.y;
 
-  const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h);
-  const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h);
-  const a = 1 / (Math.abs(xx1) + Math.abs(yy1) || 1); // evita erro de NaN
-  const xx3 = a * xx1;
-  const yy3 = a * yy1;
-  const x = w * (xx3 + yy3) + x2;
-  const y = h * (-xx3 + yy3) + y2;
+  // Bordas do retângulo source
+  const left = sourceCenter.x - sourceDimensions.x / 2;
+  const right = sourceCenter.x + sourceDimensions.x / 2;
+  const top = sourceCenter.y - sourceDimensions.y / 2;
+  const bottom = sourceCenter.y + sourceDimensions.y / 2;
 
-  return { x: x, y: y };
+  let bestT = Infinity;
+  let intersection = null;
+
+  // Testa borda esquerda
+  if (dx !== 0) {
+    const t = (left - startPoint.x) / dx;
+    if (t > 0) {
+      const y = startPoint.y + t * dy;
+      if (y >= top && y <= bottom && t < bestT) {
+        bestT = t;
+        intersection = { x: left, y };
+      }
+    }
+  }
+
+  // Testa borda direita
+  if (dx !== 0) {
+    const t = (right - startPoint.x) / dx;
+    if (t > 0) {
+      const y = startPoint.y + t * dy;
+      if (y >= top && y <= bottom && t < bestT) {
+        bestT = t;
+        intersection = { x: right, y };
+      }
+    }
+  }
+
+  // Testa borda superior
+  if (dy !== 0) {
+    const t = (top - startPoint.y) / dy;
+    if (t > 0) {
+      const x = startPoint.x + t * dx;
+      if (x >= left && x <= right && t < bestT) {
+        bestT = t;
+        intersection = { x, y: top };
+      }
+    }
+  }
+
+  // Testa borda inferior
+  if (dy !== 0) {
+    const t = (bottom - startPoint.y) / dy;
+    if (t > 0) {
+      const x = startPoint.x + t * dx;
+      if (x >= left && x <= right && t < bestT) {
+        bestT = t;
+        intersection = { x, y: bottom };
+      }
+    }
+  }
+
+  // Fallback: se não encontrou interseção, retorna o centro
+  return intersection || sourceCenter;
 }
 
 function getEdgePosition(node: any, intersectionPoint: any) {
@@ -75,10 +135,18 @@ function getEdgePosition(node: any, intersectionPoint: any) {
 export function getFloatingEdgeParams(
   source: NodeLike,
   target: NodeLike,
-  offset: number
+  displacement: number
 ) {
-  const sourceIntersectionPoint = getNodeIntersection(source, target, offset);
-  const targetIntersectionPoint = getNodeIntersection(target, source, offset);
+  const sourceIntersectionPoint = getNodeIntersection(
+    source,
+    target,
+    displacement
+  );
+  const targetIntersectionPoint = getNodeIntersection(
+    target,
+    source,
+    displacement
+  );
 
   const sourcePos = getEdgePosition(source, sourceIntersectionPoint);
   const targetPos = getEdgePosition(target, targetIntersectionPoint);
