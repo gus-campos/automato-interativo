@@ -1,6 +1,6 @@
 import { Edge, MarkerType, Node, Position } from "@xyflow/react";
 
-const nodeDefaults = {
+export const nodeDefaults = {
   style: {
     border: "1px solid black",
     borderRadius: "10px",
@@ -12,7 +12,7 @@ const nodeDefaults = {
   },
 };
 
-const terminalNodeDefaults = {
+export const terminalNodeDefaults = {
   style: {
     ...nodeDefaults.style,
     outline: "1px solid black",
@@ -20,7 +20,7 @@ const terminalNodeDefaults = {
   },
 };
 
-const edgeDefaults = {
+export const edgeDefaults = {
   interactionWidth: 200,
   style: { strokeWidth: 2, stroke: "#999" },
   markerEnd: {
@@ -31,7 +31,7 @@ const edgeDefaults = {
   type: "floating",
 };
 
-const loopEdgeDefault = {
+export const loopEdgeDefault = {
   ...edgeDefaults,
   type: "loop",
 };
@@ -49,34 +49,46 @@ export function automatToReactFlow(nfa: NFA): [Node[], Edge[]] {
   });
 
   const edges: Edge[] = Object.entries(nfa.transitions).flatMap(
-    ([origem, transicoes]) =>
-      Object.entries(transicoes).flatMap(([letra, alvos]) =>
-        alvos.map((alvo) => {
-          const isLoop = origem === alvo;
+    ([source, transicoes]) =>
+      Object.entries(transicoes).flatMap(([letter, targets]) =>
+        targets.map((target) => {
+          const isLoop = source === target;
 
-          const returnTransitions = nfa.transitions[alvo]
-            ? Object.values(nfa.transitions[alvo])
+          const returnTransitions = nfa.transitions[target]
+            ? Object.values(nfa.transitions[target])
             : undefined;
 
           const hasInverseEdge = returnTransitions
-            ? returnTransitions.some((destinos) => destinos.includes(origem))
+            ? returnTransitions.some((destinos) => destinos.includes(source))
             : false;
 
-          const curvature = hasInverseEdge
-            ? origem < alvo
-              ? 0.5
-              : -0.5
-            : undefined;
+          const extraLetter =
+            Object.entries(nfa.transitions[source] || {})
+              .filter(
+                ([letterTrans, destinos]) =>
+                  destinos.includes(target) && letterTrans !== letter
+              )
+              .map(([extraLetter]) => extraLetter)[0] ?? undefined;
 
-          console.log(curvature, origem, alvo, returnTransitions);
+          const rate = 0.5;
+
+          const displacement = hasInverseEdge
+            ? source < target
+              ? rate
+              : -rate
+            : extraLetter
+            ? extraLetter > letter
+              ? rate
+              : -rate
+            : undefined;
 
           return {
             ...(isLoop ? loopEdgeDefault : edgeDefaults),
-            id: `e-${origem}-${alvo}`,
-            source: origem,
-            target: alvo,
-            label: letra,
-            data: { curvature },
+            id: `e-${source}-${target}-${letter}`,
+            source: source,
+            target: target,
+            label: letter,
+            data: { displacement: displacement },
           } as Edge;
         })
       )

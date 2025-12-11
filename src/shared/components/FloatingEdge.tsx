@@ -9,7 +9,6 @@ type FloatingEdgeProps = {
   markerEnd?: string;
   style?: React.CSSProperties;
   label?: any;
-  curvature?: number;
   data: any;
 };
 
@@ -27,8 +26,8 @@ function FloatingEdge({
 
   if (!sourceNode || !targetNode) return null;
 
-  const curvature = data?.curvature || 0;
-  const offsetMagnitude = curvature ? (curvature < 0 ? -0.5 : +0.5) : 0;
+  const displacement = data?.displacement || 0;
+  const offsetMagnitude = displacement ? (displacement < 0 ? -0.5 : +0.5) : 0;
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
     sourceNode,
