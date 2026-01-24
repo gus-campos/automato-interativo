@@ -1,4 +1,5 @@
 import { Edge, MarkerType, Node, Position } from "@xyflow/react";
+import { NFA } from "../types/automato";
 
 export const nodeDefaults = {
   style: {
@@ -66,7 +67,7 @@ export function automatToReactFlow(nfa: NFA): [Node[], Edge[]] {
             Object.entries(nfa.transitions[source] || {})
               .filter(
                 ([letterTrans, destinos]) =>
-                  destinos.includes(target) && letterTrans !== letter
+                  destinos.includes(target) && letterTrans !== letter,
               )
               .map(([extraLetter]) => extraLetter)[0] ?? undefined;
 
@@ -77,10 +78,10 @@ export function automatToReactFlow(nfa: NFA): [Node[], Edge[]] {
               ? rate
               : -rate
             : extraLetter
-            ? extraLetter > letter
-              ? rate
-              : -rate
-            : undefined;
+              ? extraLetter > letter
+                ? rate
+                : -rate
+              : undefined;
 
           return {
             ...(isLoop ? loopEdgeDefault : edgeDefaults),
@@ -90,8 +91,8 @@ export function automatToReactFlow(nfa: NFA): [Node[], Edge[]] {
             label: letter,
             data: { displacement: displacement },
           } as Edge;
-        })
-      )
+        }),
+      ),
   );
 
   // Usado para criar a seta pro primeiro estado
