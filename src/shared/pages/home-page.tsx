@@ -16,15 +16,23 @@ const initialNfa: NFA = {
   start: "S",
   transitions: {
     S: { a: ["q1"], b: ["r1", "q1"] },
-    q1: { a: [], b: ["q2"] },
+    q1: { b: ["q2"] },
     q2: { a: ["q1"], b: ["q2"] },
     r1: { a: ["r2"], b: ["r1"] },
     r2: { a: ["r2"], b: ["r1"] },
   },
 };
 
+const emptyNfa: NFA = {
+  alphabet: [],
+  states: [],
+  accept: [],
+  start: "",
+  transitions: {},
+};
+
 export function HomePage() {
-  const [baseNfa, setBaseNfa] = useState<NFA>(initialNfa);
+  const [nfa, setNfa] = useState<NFA>(initialNfa);
   const [opened, { open, close }] = useDisclosure(false);
   const [jsonText, setJsonText] = useState(JSON.stringify(initialNfa, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -62,7 +70,7 @@ export function HomePage() {
       return;
     }
 
-    setBaseNfa(nfa);
+    setNfa(nfa);
     setJsonError(null);
     close();
   };
@@ -74,6 +82,10 @@ export function HomePage() {
 
   const handleDownloadJson = () => {
     downloadString(jsonText, "automato.json");
+  };
+
+  const handleClean = () => {
+    setNfa(emptyNfa);
   };
 
   const downloadDisabled = !!jsonError;
@@ -90,7 +102,7 @@ export function HomePage() {
         }}
       >
         <div style={{ width: "100%", height: "100%" }}>
-          <NfaView nfa={baseNfa} setNfa={setBaseNfa} />
+          <NfaView nfa={nfa} setNfa={setNfa} />
         </div>
       </div>
 
@@ -109,6 +121,17 @@ export function HomePage() {
         >
           Baixar JSON
         </Button>
+
+        <Button
+          ml="auto"
+          mr="lg"
+          variant="outline"
+          radius="lg"
+          color="red"
+          onClick={handleClean}
+        >
+          Limpar
+        </Button>
       </Group>
 
       <Modal
@@ -125,7 +148,9 @@ export function HomePage() {
           onChange={(e) => setJsonText(e.currentTarget.value)}
         />
         <Stack mt="sm">
-          <Button onClick={handleJson}>Confirmar</Button>
+          <Button onClick={handleJson} type="submit">
+            Confirmar
+          </Button>
         </Stack>
       </Modal>
     </>

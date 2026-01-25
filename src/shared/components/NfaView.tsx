@@ -27,6 +27,14 @@ import FloatingConnectionLine from "./FloatingConnectionLine";
 import { NFA } from "../types/automato";
 import FloatingEdge from "./FloatingEdge";
 import { LoopEdge } from "./LoopEdge";
+import {
+  Button,
+  Group,
+  TextInput,
+  Checkbox,
+  Paper,
+  Stack,
+} from "@mantine/core";
 
 const edgeTypes = {
   floating: FloatingEdge,
@@ -50,22 +58,19 @@ export default function NfaView(props: NfaViewProps) {
   const [newNodeName, setNewNodeName] = useState("");
   const [newNodeAccept, setNewNodeAccept] = useState(false);
 
-  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
-  // Guarda posições antigas para preservar quando o NFA muda
+  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const nodePositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  // Inicializa React Flow a partir do NFA, quando ele muda
   useEffect(() => {
     const [unpositionedNodes, initialEdges] = automatToReactFlow(props.nfa);
-
     const positionedNodes = getAutoPositionedNodes(
       unpositionedNodes,
       initialEdges,
       "TB",
     );
-
-    // Restaura posições antigas, se existirem (permite mover)
     const nodesWithPositions = positionedNodes.map((node) => ({
       ...node,
       position: nodePositionsRef.current[node.id] ?? node.position,
@@ -73,11 +78,9 @@ export default function NfaView(props: NfaViewProps) {
 
     setNodes(nodesWithPositions);
     setEdges(initialEdges);
-
     reactFlowRef.current?.fitView();
   }, [props.nfa, setEdges, setNodes]);
 
-  // Atualiza posições ao arrastar nós
   const onNodesChangeWrapper = useCallback(
     (changes: NodeChange<Node>[]) => {
       onNodesChange(changes);
@@ -91,235 +94,270 @@ export default function NfaView(props: NfaViewProps) {
     [onNodesChange, setNodes],
   );
 
-  const addEdgeToNfa = (
-    source: string,
-    target: string,
-    letterAdded: string,
-  ) => {
-    const isNewLetter = !props.nfa.alphabet.some(
-      (letter) => letter === letterAdded,
-    );
+  // DELETE NODE E EDGE
 
-    props.setNfa((prev) => ({
-      ...prev,
-      alphabet: isNewLetter ? [...prev.alphabet, letterAdded] : prev.alphabet,
-      transitions: {
-        ...prev.transitions,
-        [source]: {
-          ...(prev.transitions[source] ?? {}),
-          [letterAdded]: [
-            ...(prev.transitions[source]?.[letterAdded] ?? []),
-            target,
-          ],
-        },
-      },
-    }));
-  };
+  const handleSelectionChange = useCallback((nodes: Node[], edges: Edge[]) => {
+    setSelectedNodeId(nodes[0]?.id ?? null);
+    setSelectedEdgeId(edges[0]?.id ?? null);
+  }, []);
 
-  // Adiciona nó ao NFA
-  const addNodeToNfa = (name: string, accept: boolean) => {
-    props.setNfa((prev) => ({
-      ...prev,
-      states: prev.states.includes(name) ? prev.states : [...prev.states, name],
-      accept: accept ? [...prev.accept, name] : prev.accept,
-    }));
-  };
+  const deleteNodeFromNfa = useCallback(
+    (state: string) => {
+      props.setNfa((prev) => ({
+        ...prev,
+        start: prev.start === state ? "" : prev.start,
+        states: prev.states.filter((s) => s !== state),
+        accept: prev.accept.filter((s) => s !== state),
+        transitions: Object.fromEntries(
+          Object.entries(prev.transitions)
+            .filter(([k]) => k !== state)
+            .map(([k, v]) => [
+              k,
+              Object.fromEntries(
+                Object.entries(v).map(([l, targets]) => [
+                  l,
+                  targets.filter((t) => t !== state),
+                ]),
+              ),
+            ]),
+        ),
+      }));
+    },
+    [props],
+  );
 
-  const onConnect = useCallback((params: Edge | Connection) => {
+  const deleteEdgeFromNfa = useCallback(
+    (edgeId: string) => {
+      const edge = edges.find((e) => e.id === edgeId);
+      if (!edge) return;
+      const { source, target, label } = edge;
+
+      props.setNfa((prev) => {
+        const transitions = { ...prev.transitions };
+
+        // Atualiza a transição source
+        if (transitions[source]?.[label as string]) {
+          const updatedTargets = transitions[source][label as string].filter(
+            (t) => t !== target,
+          );
+
+          if (updatedTargets.length === 0) {
+            delete transitions[source][label as string];
+          } else {
+            transitions[source] = {
+              ...transitions[source],
+              [label as string]: updatedTargets,
+            };
+          }
+        }
+
+        // Verifica se letra ainda existe E tem targets
+        const letterStillUsed = Object.values(transitions).some(
+          (trans) => trans[label as string]?.length > 0,
+        );
+
+        return {
+          ...prev,
+          transitions,
+          alphabet: letterStillUsed
+            ? prev.alphabet
+            : prev.alphabet.filter((l) => l !== label),
+        };
+      });
+    },
+    [edges, props],
+  );
+
+  const handleDeleteNodeClicked = useCallback(() => {
+    if (!selectedNodeId && !selectedEdgeId) return;
+
+    if (selectedNodeId) deleteNodeFromNfa(selectedNodeId);
+    if (selectedEdgeId) deleteEdgeFromNfa(selectedEdgeId);
+
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+  }, [
+    selectedNodeId,
+    selectedEdgeId,
+    deleteNodeFromNfa,
+    deleteEdgeFromNfa,
+    setSelectedEdgeId,
+    setSelectedNodeId,
+  ]);
+
+  const handleConnect = useCallback((params: Edge | Connection) => {
     setEdgeBeingAdded(params as Edge);
     setAddMode(true);
   }, []);
 
-  return (
-    // Give the ReactFlow container an explicit height so it can render
+  const isDeleteDisabled = !selectedNodeId && !selectedEdgeId;
 
+  // ADICIONA NODE E EDGE
+
+  const addEdgeToNfa = useCallback(
+    (source: string, target: string, letterAdded: string) => {
+      const isNewLetter = !props.nfa.alphabet.some(
+        (letter) => letter === letterAdded,
+      );
+
+      // Transição já adicionada
+      if (
+        props.nfa.transitions[source]?.[letterAdded]?.some((t) => t === target)
+      )
+        return;
+
+      props.setNfa((prev) => ({
+        ...prev,
+        alphabet: isNewLetter ? [...prev.alphabet, letterAdded] : prev.alphabet,
+        transitions: {
+          ...prev.transitions,
+          [source]: {
+            ...(prev.transitions[source] ?? {}),
+            [letterAdded]: [
+              ...(prev.transitions[source]?.[letterAdded] ?? []),
+              target,
+            ],
+          },
+        },
+      }));
+    },
+    [props],
+  );
+
+  const addNodeToNfa = useCallback(
+    (name: string, accept: boolean) => {
+      const isStartNode = props.nfa.start === "";
+      props.setNfa((prev) => ({
+        ...prev,
+        start: isStartNode ? name : prev.start,
+        states: prev.states.includes(name)
+          ? prev.states
+          : [...prev.states, name],
+        accept: accept ? [...prev.accept, name] : prev.accept,
+      }));
+    },
+    [props],
+  );
+
+  const handleAddEdge = useCallback(() => {
+    if (!edgeBeingAdded) return;
+    const letterAdded = addedLetterTransition!.trim();
+    addEdgeToNfa(edgeBeingAdded.source, edgeBeingAdded.target, letterAdded);
+    setAddMode(false);
+    setAddedName(null);
+  }, [edgeBeingAdded, addedLetterTransition, addEdgeToNfa]);
+
+  const handleAddNode = useCallback(() => {
+    const name = newNodeName.trim();
+    if (!name) return;
+    if (!props.nfa.states.includes(name)) addNodeToNfa(name, newNodeAccept);
+    setAddNodeMode(false);
+    setNewNodeName("");
+    setNewNodeAccept(false);
+  }, [newNodeName, newNodeAccept, props.nfa.states, addNodeToNfa]);
+
+  const handleCancelAddNode = useCallback(() => {
+    setAddNodeMode(false);
+    setNewNodeName("");
+    setNewNodeAccept(false);
+  }, []);
+
+  // EXTRA
+
+  const handleReactFlowInit = useCallback((rfi: ReactFlowInstance) => {
+    reactFlowRef.current = rfi;
+  }, []);
+
+  const trimmedAddedLetter = addedLetterTransition ?? "";
+
+  console.log(props.nfa);
+
+  return (
     <ReactFlow
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChangeWrapper}
       onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
+      onConnect={handleConnect}
+      onSelectionChange={({ nodes, edges }) =>
+        handleSelectionChange(nodes, edges)
+      }
       style={{ width: "100%", height: "100%" }}
       fitView={true}
       edgeTypes={edgeTypes}
       connectionLineComponent={FloatingConnectionLine}
-      onInit={(rfi) => {
-        reactFlowRef.current = rfi;
-      }}
+      onInit={handleReactFlowInit}
     >
       <Panel position="top-center">
         {addEdgeMode && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 14px",
-              background: "white",
-              borderRadius: "12px",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-            }}
-          >
-            <span>Nome da transição:</span>
-
-            <input
-              type="text"
-              autoFocus
-              value={addedLetterTransition ?? ""}
-              onChange={(e) => setAddedName(e.target.value)}
-              style={{
-                padding: "6px 8px",
-                border: "1px solid #ccc",
-                borderRadius: "8px",
-                width: "120px",
-              }}
-            />
-
-            <button
-              onClick={() => {
-                if (!edgeBeingAdded) return;
-
-                // Se pertence ao alfabeto
-                const letterAdded = addedLetterTransition!.trim();
-
-                addEdgeToNfa(
-                  edgeBeingAdded.source,
-                  edgeBeingAdded.target,
-                  letterAdded,
-                );
-
-                setAddMode(false);
-                setAddedName(null);
-              }}
-              style={{
-                padding: "6px 10px",
-                borderRadius: "8px",
-                background: "#4caf50",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              Adicionar
-            </button>
-          </div>
+          <Paper p="md" shadow="md" radius="md" withBorder>
+            <Group gap="sm">
+              <span>Símbolo da transição:</span>
+              <TextInput
+                autoFocus
+                value={trimmedAddedLetter}
+                onChange={(e) => setAddedName(e.target.value)}
+                w={120}
+              />
+              <Button onClick={handleAddEdge} color="green">
+                Adicionar
+              </Button>
+            </Group>
+          </Paper>
         )}
       </Panel>
 
-      {/* Painel sempre visível */}
       <Panel position="bottom-center">
         {!addNodeMode ? (
-          // Estado normal: só o botão
-          <button
-            onClick={() => setAddNodeMode(true)}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "8px",
-              background: "#1976d2",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            + Novo nó
-          </button>
+          <Group>
+            <Button
+              color="red"
+              disabled={isDeleteDisabled}
+              onClick={handleDeleteNodeClicked}
+            >
+              Deletar elemento selecionado
+            </Button>
+            <Button onClick={() => setAddNodeMode(true)}>+ Novo nó</Button>
+          </Group>
         ) : (
-          // Formulário
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              padding: "12px 16px",
-              background: "white",
-              borderRadius: "12px",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-              width: "200px",
-            }}
-          >
-            <strong>Adicionar novo nó</strong>
-
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
-            >
-              Nome:
-              <input
-                type="text"
-                autoFocus
-                value={newNodeName}
-                onChange={(e) => setNewNodeName(e.target.value)}
-                style={{
-                  padding: "6px 8px",
-                  border: "1px solid #ccc",
-                  borderRadius: "8px",
-                }}
-              />
-            </label>
-
-            <label
-              style={{ display: "flex", gap: "5px", alignItems: "center" }}
-            >
-              <input
-                type="checkbox"
-                checked={newNodeAccept}
-                onChange={(e) => setNewNodeAccept(e.target.checked)}
-              />
-              Terminal?
-            </label>
-
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                onClick={() => {
-                  const name = newNodeName.trim();
-
-                  if (!name) return;
-
-                  // Se label for única, adicionar
-                  if (!props.nfa.states.includes(name))
-                    addNodeToNfa(name, newNodeAccept);
-
-                  // Reset
-                  setAddNodeMode(false);
-                  setNewNodeName("");
-                  setNewNodeAccept(false);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "6px 8px",
-                  borderRadius: "8px",
-                  background: "#4caf50",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
+          <Paper p="md" shadow="md" radius="md" withBorder w={300}>
+            <Stack gap="sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
                 }}
               >
-                Adicionar
-              </button>
+                <strong>Adicionar novo nó</strong>
 
-              <button
-                onClick={() => {
-                  setAddNodeMode(false);
-                  setNewNodeName("");
-                  setNewNodeAccept(false);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "6px 8px",
-                  borderRadius: "8px",
-                  background: "#ccc",
-                  color: "#333",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
+                <TextInput
+                  label="Nome:"
+                  autoFocus
+                  value={newNodeName}
+                  onChange={(e) => setNewNodeName(e.target.value)}
+                />
+
+                <Checkbox
+                  label="Terminal?"
+                  checked={newNodeAccept}
+                  my="md"
+                  onChange={(e) => setNewNodeAccept(e.currentTarget.checked)}
+                />
+
+                <Group gap="sm">
+                  <Button
+                    onClick={handleCancelAddNode}
+                    color="gray"
+                    style={{ flex: 1 }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAddNode} style={{ flex: 1 }}>
+                    Adicionar
+                  </Button>
+                </Group>
+              </form>
+            </Stack>
+          </Paper>
         )}
       </Panel>
 
