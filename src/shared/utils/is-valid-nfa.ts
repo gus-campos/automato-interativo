@@ -38,14 +38,12 @@ export function validateNfa(nfa: NFA): string[] {
     for (const [symbol, toStates] of Object.entries(
       transitionsBySymbol as Record<string, unknown>,
     )) {
-      // símbolo ∈ alphabet
       if (!alphabetSet.has(symbol)) {
         errors.push(
           `Símbolo inválido na transição (${fromState} --${symbol}--> ...)`,
         );
       }
 
-      // destinos ⊆ states
       if (!Array.isArray(toStates)) {
         errors.push(
           `Destino inválido na transição (${fromState} --${symbol}--> ?)`,

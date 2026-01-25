@@ -9,11 +9,6 @@ import { ZodError } from "zod";
 import { validateNfa as validateNfa } from "../utils/is-valid-nfa";
 import { downloadString } from "../utils/download-string";
 
-/*
-TODO
-- [] Ler e exportar o json
-*/
-
 const initialNfa: NFA = {
   alphabet: ["a", "b"],
   states: ["S", "q1", "q2", "r1", "r2"],
@@ -33,10 +28,6 @@ export function HomePage() {
   const [opened, { open, close }] = useDisclosure(false);
   const [jsonText, setJsonText] = useState(JSON.stringify(initialNfa, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
-
-  // useEffect(() => {}, [baseNfa])
-
-  console.log(baseNfa);
 
   const handleJson = () => {
     // Tentar parsear o json
